@@ -28,10 +28,10 @@ No existing user file was modified. `HypnoReview_Projektova_Specifikace.md` rema
 - GitHub CLI: installed, version 2.102.0.
 - Authentication: successfully verified for `SkrabMartin` after owner completed browser login.
 - GitHub repository creation: completed with `gh repo create hypnoreview --private --source . --remote origin`.
-- Push status: pending final documentation update and push verification.
+- Push status: successful; `main` tracks `origin/main`. Remote visibility verified as `PRIVATE`. First pushed follow-up commit: `c877b05`.
 - Initial documentation commit: `2b1113706291d6df32a93e91799ea0636eb8f9ad` (`chore: initialize HypnoReview repository and documentation`). A subsequent documentation-only commit records this identifier and final results; use `git rev-parse HEAD` for the current tip.
 
-After restoring authentication, run the following from this project directory. The first two commands verify that the private specification is ignored and absent from the tracked file list; the second must print nothing.
+Historical recovery instructions (already completed; do not rerun repository creation): The first two commands verify that the private specification is ignored and absent from the tracked file list; the second must print nothing.
 
 ```powershell
 git check-ignore HypnoReview_Projektova_Specifikace.md
@@ -67,7 +67,7 @@ The future tree is documentation only. The current tree includes the five Phase 
 - PASS: `.gitignore` excludes the specification, `.env`, sample raw recordings, and generated model artifacts; intended source and `docs/datasets` paths remain trackable.
 - PASS: all working files are below 100 KB; the exact five-file staged inventory was verified and a heuristic scan found no common credential patterns. The private specification is absent from the tracked list.
 - PASS: `git diff --cached --check` reported no whitespace errors before the initial commit. Final Git status and commit-tree inventory were inspected after the report update.
-- GitHub CI: not run; no success is claimed. Application tests are inapplicable because Phase 0 contains no application.
+- GitHub CI: triggered by the successful push; run `40134992405` was in progress when inspected. No success is claimed in this report. Application tests are inapplicable because Phase 0 contains no application.
 
 ## Known Limitations
 
@@ -82,7 +82,7 @@ Phase 1 will audit dataset provenance, SC/ST participant and night metadata, lic
 
 ## Final Verdict
 
-**PHASE 0 PARTIALLY COMPLETE** — local setup and private GitHub creation are complete; final push verification is pending.
+**PHASE 0 COMPLETE** — local setup, private GitHub repository creation, and push are verified.
 
 ## Follow-up Verification and Architecture Changes
 
@@ -101,7 +101,7 @@ The existing workflow shell checks were rerun successfully during the preceding 
 | Specification unchanged, ignored, and absent from all commits | PASS |
 | Private GitHub repository and remote | PASS |
 | Initial documentation commits | PASS |
-| Push and final remote verification | BLOCKED — pending push |
+| Push and final remote verification | PASS |
 | Software license left unselected | PASS |
 
 The next phase remains Phase 1: research and data audit (original specification P0). It has not started. This follow-up does not authorize or launch it.
