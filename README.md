@@ -2,7 +2,7 @@
 
 **Human-in-the-loop EEG sleep staging, uncertainty-aware review, and reproducible evaluation.**
 
-**Status: Phase 2 — Signal foundation**
+**Status: Phase 3 — Baseline models**
 
 Domains: biomedical signal processing · neuroinformatics · machine learning · full-stack engineering · reproducible research.
 
@@ -14,7 +14,7 @@ HypnoReview is a planned platform for analyzing polysomnography (PSG), proposing
 
 An overnight recording can contain roughly a thousand 30-second epochs. Automated scoring can reduce repetitive work, but errors, artifacts, and ambiguous transitions still require expert verification. The research question is whether transparent prioritization can find more errors within a fixed review budget than random review or confidence alone.
 
-This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Models, APIs, interfaces, and evaluation remain planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
+This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Phase 3 adds YASA inference, a transparent classifier, versioned probability outputs, and small-sample subject-wise development metrics. APIs, interfaces, review ranking, and the locked benchmark remain planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
 
 ## Problem Statement
 
@@ -34,7 +34,7 @@ HypnoReview intends to combine stage probabilities, signal quality indicators, t
 
 ## Planned Features
 
-**The full platform remains planned. Only the audit and signal-import foundation are implemented; the items below describe the eventual scope.**
+**The full platform remains planned. The audit, signal-import foundation, and baseline staging are implemented; the items below describe the eventual scope.**
 
 | Area | Planned capabilities |
 |---|---|
@@ -229,20 +229,24 @@ hypnoreview/
 ├── packages/
 │   ├── __init__.py
 │   ├── core/{__init__.py,annotations.py}
-│   └── signals/{__init__.py,edf_loader.py,epochs.py,quality.py,pipeline.py,cli.py}
+│   ├── signals/{__init__.py,edf_loader.py,epochs.py,quality.py,pipeline.py,cli.py}
+│   ├── models/{__init__.py,contracts.py,features.py,baseline.py,yasa_adapter.py,cli.py}
+│   └── evaluation/{__init__.py,classification.py}
 ├── tools/{__init__.py,audit_sleep_edf.py}
 ├── tests/
-│   ├── unit/{test_dataset_audit.py,test_signal_foundation.py}
-│   └── integration/test_edf_import.py
+│   ├── unit/{test_dataset_audit.py,test_signal_foundation.py,test_models.py}
+│   └── integration/{test_edf_import.py,test_yasa_adapter.py,test_model_development_guard.py}
 ├── docs/datasets/DATASET_CARD.md        # local only, ignored
 ├── data/audit/                         # source metadata, manifest, samples; ignored
 ├── derived/imports/                    # local JSON import results; ignored
+├── artifacts/models/                   # model parameters, features, probabilities, metrics; ignored
 ├── .venv/                             # local audit environment; ignored
 ├── .venv-signals/                      # Python 3.12 signal environment; ignored
 ├── HypnoReview_Projektova_Specifikace.md # local only, ignored
 ├── PHASE0_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE1_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE2_COMPLETION_REPORT.md         # local only, ignored
+├── PHASE3_COMPLETION_REPORT.md         # local only, ignored
 └── README.md
 ```
 
@@ -290,7 +294,7 @@ This execution sequence adds repository setup before the specification's origina
 | **0** | GitHub setup, documentation, repository planning, minimal checks. | Complete; private GitHub repository configured. |
 | **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Complete; inventory, frozen split, five sample pairs and integrity checks verified. |
 | **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Complete; five real imports and synthetic edge-case tests verified. |
-| **3** | YASA integration and baseline sleep-stage classification. | Not started. |
+| **3** | YASA integration and baseline sleep-stage classification. | Complete; real inference, logistic baseline and participant-held-out development checks verified. |
 | **4** | Uncertainty scoring and intelligent review prioritization. | Not started. |
 | **5** | FastAPI backend, database, and interactive frontend. | Not started. |
 | **6** | ML evaluation, subject-wise benchmarking, and reproducibility. | Not started. |
@@ -324,9 +328,9 @@ python -m venv .venv
 
 Use `--mirror physionet` for the primary HTTPS endpoint. Downloads are opt-in, checksum-verified, atomic, and reused if already valid. A corrupt existing file produces an error rather than being silently overwritten. All generated data and manifests stay under ignored `data/audit/`. The source checksum-manifest hash is pinned; a changed snapshot requires explicit review. Regeneration refuses to overwrite a different frozen audit manifest.
 
-Participant splits use cohort-stratified SHA-256 ordering with seed 42 and floor(15% of participants) each for validation and test, with the remainder in training. This gives 72/14/14 participants and 143/26/28 nights across train/validation/test. Both nights stay together. The selected development nights are SC4011E0, SC4012E0, SC4021E0, ST7011J0, and ST7012J0, all from training. All ten PSG/hypnogram files were downloaded locally and verified against official checksums (209,392,104 bytes total). This sample does not represent an evaluation cohort. No model performance has been measured; Phase 2 alignment is verified for the five selected nights. Pretraining overlap for YASA remains unresolved.
+Participant splits use cohort-stratified SHA-256 ordering with seed 42 and floor(15% of participants) each for validation and test, with the remainder in training. This gives 72/14/14 participants and 143/26/28 nights across train/validation/test. Both nights stay together. The selected development nights are SC4011E0, SC4012E0, SC4021E0, ST7011J0, and ST7012J0, all from training. All ten PSG/hypnogram files were downloaded locally and verified against official checksums (209,392,104 bytes total). This sample does not represent an evaluation cohort. Only small-sample development metrics have been measured; Phase 2 alignment is verified for the five selected nights. Pretraining overlap for YASA remains unresolved.
 
-The pinned XLS reader is the only Phase 1 audit dependency. Phase 2 separately installs MNE, NumPy, SciPy, and development tools; no staging models are installed. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. The Phase 2 workflow changes have not been pushed or run on GitHub. Local dataset cards and phase reports remain excluded from Git.
+The pinned XLS reader is the only Phase 1 audit dependency. Phase 2 separately installs MNE, NumPy, SciPy, and development tools; Phase 3 adds pinned YASA and scikit-learn dependencies. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. The Phase 2 workflow changes have not been pushed or run on GitHub. Local dataset cards and phase reports remain excluded from Git.
 
 ### Signal foundation (Phase 2)
 
@@ -347,7 +351,7 @@ On another operating system use the equivalent environment-variable syntax. The 
 uv run --frozen hypnoreview-import --psg path/to/recording.edf --annotations path/to/hypnogram.edf --eeg "EEG Fpz-Cz" --eog "EOG horizontal"
 ```
 
-Annotations are optional; missing references remain explicit. Only exact known Sleep-EDF channel names are suggested automatically. Unknown montages require `--eeg`; optional roles can be omitted. Channels must be distinct and have recognized voltage units. Native rates are retained, including SC's 1 Hz EMG envelope, which receives a descriptive warning. No filtering, resampling, padding, staging, or clinical artifact classification is performed.
+Annotations are optional; missing references remain explicit. Only exact known Sleep-EDF channel names are suggested automatically. Unknown montages require `--eeg`; optional roles can be omitted. Channels must be distinct and have recognized voltage units. Native rates are retained, including SC's 1 Hz EMG envelope, which receives a descriptive warning. The importer performs no filtering, resampling, padding, staging, or clinical artifact classification; staging is a separate Phase 3 command.
 
 Imports go to ignored `derived/imports/` as JSON containing source hashes, version/configuration provenance, original annotation text, aligned intervals, epoch coverage, reference eligibility, and per-channel QC. Existing identical results are reused; differing results require a new `--output` directory. Signal reads are lazy and limited to 30 seconds and at most one million samples per channel. Patient/header identity text is not included in output metadata.
 
@@ -364,6 +368,40 @@ QC reports sample counts, peak-to-peak and RMS amplitudes, nonfinite samples, fl
 | ST7012J0 | 1,044 | 1,044 | 1,040 |
 
 These are measured import/coverage counts, not classification benchmarks. ST7011J0 has a 20-second incomplete tail and trailing annotation gaps. SC annotation intervals extending beyond the PSG remain in provenance and do not create extra epochs. All data and reports stay local.
+
+### Baseline staging (Phase 3)
+
+After the five Phase 2 imports exist, use the same isolated environment:
+
+```powershell
+$env:UV_PROJECT_ENVIRONMENT = ".venv-signals"
+uv sync --frozen --python 3.12
+uv run --frozen hypnoreview-models
+# Optional: custom baseline only, without running YASA inference
+uv run --frozen hypnoreview-models --baseline-only
+```
+
+This development command accepts only the five training samples selected by the frozen audit manifest. It verifies original file hashes and import/participant provenance before processing. It refuses validation/test participants. It does not download more data or inspect the locked test labels. Results remain under ignored `artifacts/models/<run-id>/`.
+
+**Model A:** a pinned YASA 0.8.0 adapter uses `SleepStaging.predict()` and the returned hypnogram's `.hypno`/`.proba`. The selected package-bundled `clf_eeg+eog_lgb_0.5.0.joblib` is identified by its actual SHA-256. No external filtering or z-score transform is applied. EEG+EOG are used consistently; SC's 1 Hz EMG envelope is omitted. The general Python adapter supports same-rate optional EMG, rejects unsupported units and low-rate/mixed-rate inputs, and caps the selected input allocation at 512 MiB. It preserves full-night context and explicitly marks the incomplete final epoch rather than padding it. YASA performs its own documented preprocessing.
+
+**Model B:** a label-free EEG branch computes Welch relative delta/theta/alpha/sigma/beta powers, log RMS/standard deviation, and Hjorth mobility/complexity for full 30-second epochs. A scikit-learn pipeline fits median imputation, standardization, and balanced logistic regression only on training participants. No reference label enters feature extraction. Every fold must contain all five training classes. Parameters are exported as inspectable JSON; inference reproduces the fitted pipeline without loading arbitrary pickles.
+
+Both models output probabilities in explicit `[WAKE, N1, N2, N3, REM]` order. Nonfinite/invalid distributions are rejected. Original references remain separate from prediction files. Baseline artifacts, fold parameters, source/import hashes, dependency versions, feature configuration, code digest, Git revision, and YASA weight hashes make runs traceable. A content-derived run ID separates versions; existing identical outputs and feature/YASA caches are reused, while mismatched results fail. Full-data baseline predictions are explicitly labeled in-sample; separate out-of-fold probabilities are available for eligible development epochs.
+
+The initial check uses leave-one-participant-out evaluation on **three local training participants**, covering 10,586 eligible epochs. This is a development check, not the frozen independent benchmark, and does not establish generalization. No hyperparameter tuning or probability calibration was performed. Observed metrics:
+
+| Metric | Logistic baseline, participant-held-out | YASA, local reference agreement |
+|---|---:|---:|
+| Macro-F1 | 0.48745 | 0.74145 |
+| Balanced accuracy | 0.61174 | 0.77027 |
+| Cohen's kappa | 0.41061 | 0.79372 |
+| Log-loss | 1.69740 | 0.39526 |
+| Multiclass Brier (sum across classes) | 0.68615 | 0.19724 |
+
+These columns use different training provenance; they are not a controlled claim that one model generalizes better. Confusion matrices and exact values are saved locally. Cohort-level uncertainty intervals, calibration experiments, and the locked subject-wise benchmark remain future evaluation work. Review scores and ranking are not implemented in Phase 3.
+
+**Known YASA compatibility limits:** its bundled model emits a scikit-learn LabelEncoder serialization warning (trained with 0.24.2, loaded with 1.7.2), and pandas emits a deprecated inplace-operation warning. Both are retained in every run's model metadata. Successful local schema/count checks do not prove cross-version equivalence. Sleep-EDF's Fpz-Cz montage also differs from YASA's preferred central derivations. The upstream [training repository](https://github.com/raphaelvallat/yasa_classifier) lists CCSHS, CFS, CHAT, HomePAP, MESA, MrOS, and SHHS; record/participant overlap with these data has not been independently verified. No independent external-validation claim is made. Cite [Vallat and Walker (2021)](https://doi.org/10.7554/eLife.70092) when using YASA.
 
 ## Research Limitations and Safety
 

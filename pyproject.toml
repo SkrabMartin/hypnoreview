@@ -4,13 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hypnoreview"
-version = "0.2.0"
-description = "Research PSG import and annotation alignment foundation"
+version = "0.3.0"
+description = "Research PSG import and reproducible baseline sleep staging"
 requires-python = ">=3.11"
-dependencies = ["mne==1.13.2", "numpy>=2,<2.4", "scipy>=1.14,<1.17"]
+dependencies = ["mne==1.13.2", "numpy>=2.2.2,<2.4", "scipy>=1.15,<1.17", "yasa==0.8.0", "scikit-learn==1.7.2"]
 
 [project.scripts]
 hypnoreview-import = "packages.signals.cli:main"
+hypnoreview-models = "packages.models.cli:main"
 
 [dependency-groups]
 dev = ["pytest>=8,<10", "ruff>=0.14,<1", "mypy>=1.18,<2", "xlrd==2.0.2"]
