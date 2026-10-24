@@ -28,7 +28,7 @@ No existing user file was modified. `HypnoReview_Projektova_Specifikace.md` rema
 - Authentication: `gh auth status` reports an invalid saved token for `SkrabMartin`.
 - GitHub repository creation: not performed; no usable CLI authentication and no repository-creation capability in the available GitHub connector.
 - Push status: not attempted; no authenticated remote.
-- Commit: pending final local verification and commit; this section will be updated with the documentation commit identifier.
+- Initial documentation commit: `2b1113706291d6df32a93e91799ea0636eb8f9ad` (`chore: initialize HypnoReview repository and documentation`). A subsequent documentation-only commit records this identifier and final results; use `git rev-parse HEAD` for the current tip.
 
 After restoring authentication, run the following from this project directory. The first two commands verify that the private specification is ignored and absent from the tracked file list; the second must print nothing.
 
@@ -64,7 +64,8 @@ The future tree is documentation only. The current tree includes the five Phase 
 - PASS: README documentation links have valid HTTPS URL formats; reachability was not tested.
 - PASS: workflow is encoded using the JSON subset of YAML 1.2 and parsed with Python's standard-library JSON parser. Its documentation-check shell script ran successfully through Git Bash locally. The sandbox initially blocked Bash initialization; the authorized retry succeeded.
 - PASS: `.gitignore` excludes the specification, `.env`, sample raw recordings, and generated model artifacts; intended source and `docs/datasets` paths remain trackable.
-- PASS: all working files are below 100 KB; exact staged inventory and common credential-pattern scan are checked before committing.
+- PASS: all working files are below 100 KB; the exact five-file staged inventory was verified and a heuristic scan found no common credential patterns. The private specification is absent from the tracked list.
+- PASS: `git diff --cached --check` reported no whitespace errors before the initial commit. Final Git status and commit-tree inventory were inspected after the report update.
 - GitHub CI: not run; no success is claimed. Application tests are inapplicable because Phase 0 contains no application.
 
 ## Known Limitations
