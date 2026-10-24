@@ -23,6 +23,11 @@
           "name": "Validate Phase 0 documentation",
           "shell": "bash",
           "run": "set -euo pipefail\nfor file in README.md .gitignore .editorconfig .github/workflows/repository-checks.yml; do\n  test -s \"$file\"\ndone\nheadings=(\n  'Project Overview' 'Problem Statement' 'Project Goals'\n  'Planned Features' 'System Architecture' 'Technology Stack'\n  'Repository Structure' 'Data Sources' 'Planned Machine Learning Workflow'\n  'Development Roadmap' 'Installation / Getting Started'\n  'Research Limitations and Safety' 'Contributing and License' 'References'\n)\nfor heading in \"${headings[@]}\"; do\n  grep -Fxq \"## $heading\" README.md\ndone\ngrep -Fxq '### Current Repository Structure' README.md\ngrep -Fxq '### Planned Repository Structure' README.md\nif git ls-files --error-unmatch HypnoReview_Projektova_Specifikace.md >/dev/null 2>&1; then\n  echo 'Private specification must remain untracked.' >&2\n  exit 1\nfi\nif git ls-files '*.md' | grep -v -x 'README.md'; then\n  echo 'Only the root README.md may be tracked; other Markdown documents stay local.' >&2\n  exit 1\nfi\n"
+        },
+        {
+          "name": "Test dataset audit invariants (offline)",
+          "shell": "bash",
+          "run": "python3 -m unittest discover -s tests/unit -v\npython3 -m compileall -q tools tests\n"
         }
       ]
     }

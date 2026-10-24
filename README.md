@@ -2,7 +2,7 @@
 
 **Human-in-the-loop EEG sleep staging, uncertainty-aware review, and reproducible evaluation.**
 
-**Status: Phase 0 — Repository initialization**
+**Status: Phase 1 — Research & data audit**
 
 Domains: biomedical signal processing · neuroinformatics · machine learning · full-stack engineering · reproducible research.
 
@@ -14,7 +14,7 @@ HypnoReview is a planned platform for analyzing polysomnography (PSG), proposing
 
 An overnight recording can contain roughly a thousand 30-second epochs. Automated scoring can reduce repetitive work, but errors, artifacts, and ambiguous transitions still require expert verification. The research question is whether transparent prioritization can find more errors within a fixed review budget than random review or confidence alone.
 
-This repository currently contains documentation and repository configuration only. All signal processing, models, APIs, interfaces, and evaluation capabilities described below are planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
+This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. All signal processing, models, APIs, interfaces, and evaluation capabilities described below are planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
 
 ## Problem Statement
 
@@ -216,27 +216,32 @@ hypnoreview/
 
 ### Current Repository Structure
 
-The actual Phase 0 working directory contains the following files, excluding Git internals. The local project specification is preserved and explicitly ignored; it is not part of any commit or upload.
+The current working directory contains the following files, excluding Git internals, Python caches, and virtual-environment contents. The local project specification is preserved and explicitly ignored; it is not part of any commit or upload.
 
 ```text
 hypnoreview/
-├── .github/
-│   └── workflows/
-│       └── repository-checks.yml
+├── .github/workflows/repository-checks.yml
 ├── .editorconfig
 ├── .gitignore
-├── HypnoReview_Projektova_Specifikace.md  # existing, local only, ignored
-├── PHASE0_COMPLETION_REPORT.md          # local only, ignored
+├── requirements-audit.txt
+├── tools/audit_sleep_edf.py
+├── tests/unit/test_dataset_audit.py
+├── docs/datasets/DATASET_CARD.md        # local only, ignored
+├── data/audit/                         # source metadata, manifest, samples; ignored
+├── .venv/                             # local audit environment; ignored
+├── HypnoReview_Projektova_Specifikace.md # local only, ignored
+├── PHASE0_COMPLETION_REPORT.md         # local only, ignored
+├── PHASE1_COMPLETION_REPORT.md         # local only, ignored
 └── README.md
 ```
 
 ## Data Sources
 
-The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a dataset already imported or supported by this repository. The audit will examine the sleep-cassette (SC) and sleep-telemetry (ST) cohorts, available channels, participants, nights, and annotation coverage.
+The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a dataset already imported or supported by this repository. The Phase 1 metadata audit matched all 197 recording/annotation pairs to the official subject tables: 153 SC nights from 78 participants and 44 ST nights from 22 participants. Signal headers and annotation coverage are not yet analyzed.
 
 Sleep-EDF uses historical Rechtschaffen & Kales (R&K) annotation conventions. A documented five-class mapping will combine historical stages 3 and 4 into N3, while preserving the original labels. Movement and unscored intervals must remain explicit and be excluded from standard five-class metrics under a predefined eligibility policy. This mapping does not make the source annotations equivalent to modern AASM scoring.
 
-Dataset provenance, SHA-256 checksums, licensing, citations, and verified participant identifiers will be recorded. All nights from a participant must remain in one partition. Dataset files must never be committed to Git. The dataset's ODC-By 1.0 license is separate from the eventual software license; attribution and redistribution conditions must be verified before publishing derived demo materials. No data is downloaded in Phase 0.
+The local audit manifest records source provenance, SHA-256 checksums, verified subject/night identifiers, metadata row references, and participant splits. All nights from a participant must remain in one partition. Dataset files must never be committed to Git. The dataset's ODC-By 1.0 license is separate from the eventual software license; attribution and redistribution conditions must be verified before publishing derived demo materials. No data is downloaded in Phase 0.
 
 ## Planned Machine Learning Workflow
 
@@ -272,7 +277,7 @@ This execution sequence adds repository setup before the specification's origina
 | Phase | Scope | Status |
 |---|---|---|
 | **0** | GitHub setup, documentation, repository planning, minimal checks. | Complete; private GitHub repository configured. |
-| **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Not started. |
+| **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Complete; inventory, frozen split, five sample pairs and integrity checks verified. |
 | **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Not started. |
 | **3** | YASA integration and baseline sleep-stage classification. | Not started. |
 | **4** | Uncertainty scoring and intelligent review prioritization. | Not started. |
@@ -294,7 +299,23 @@ cd hypnoreview
 
 **Application installation and execution instructions will be added as the corresponding components are implemented.**
 
-The only current automation checks required repository files and documentation headings. It does not run scientific, API, or frontend tests. GitHub execution has not been verified during local setup.
+### Dataset audit (Phase 1 only)
+
+The audit CLI inspects official source tables and file hashes without decoding EDF signals or hypnogram labels. In PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-audit.txt
+.\.venv\Scripts\python.exe tools/audit_sleep_edf.py --fetch-metadata
+.\.venv\Scripts\python.exe tools/audit_sleep_edf.py --download-samples --verify-samples --mirror s3
+.\.venv\Scripts\python.exe -m unittest discover -s tests/unit -v
+```
+
+Use `--mirror physionet` for the primary HTTPS endpoint. Downloads are opt-in, checksum-verified, atomic, and reused if already valid. A corrupt existing file produces an error rather than being silently overwritten. All generated data and manifests stay under ignored `data/audit/`. The source checksum-manifest hash is pinned; a changed snapshot requires explicit review. Regeneration refuses to overwrite a different frozen audit manifest.
+
+Participant splits use cohort-stratified SHA-256 ordering with seed 42 and floor(15% of participants) each for validation and test, with the remainder in training. This gives 72/14/14 participants and 143/26/28 nights across train/validation/test. Both nights stay together. The selected development nights are SC4011E0, SC4012E0, SC4021E0, ST7011J0, and ST7012J0, all from training. All ten PSG/hypnogram files were downloaded locally and verified against official checksums (209,392,104 bytes total). This sample does not represent an evaluation cohort. Stage prevalence and time alignment remain unmeasured. Pretraining overlap for YASA remains unresolved.
+
+The pinned XLS reader is the only audit dependency; no ML or application libraries are installed. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. Phase 0 CI was verified; Phase 1 changes have not been pushed or run on GitHub. Local dataset cards and phase reports remain excluded from Git.
 
 ## Research Limitations and Safety
 

@@ -1,0 +1,2 @@
+# Phase 1 only: read the original PhysioNet XLS metadata.
+xlrd==2.0.2
