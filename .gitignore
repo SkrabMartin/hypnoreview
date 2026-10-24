@@ -1,6 +1,11 @@
 # Private project specification: local only; never publish.
 /HypnoReview_Projektova_Specifikace.md
 
+# Keep reports, reviews, specifications, and other Markdown documents local.
+# README.md is the sole Markdown file intended for GitHub.
+*.md
+!README.md
+
 # Python
 __pycache__/
 *.py[cod]

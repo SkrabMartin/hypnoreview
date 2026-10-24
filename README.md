@@ -226,7 +226,7 @@ hypnoreview/
 ├── .editorconfig
 ├── .gitignore
 ├── HypnoReview_Projektova_Specifikace.md  # existing, local only, ignored
-├── PHASE0_COMPLETION_REPORT.md
+├── PHASE0_COMPLETION_REPORT.md          # local only, ignored
 └── README.md
 ```
 
@@ -285,7 +285,7 @@ Correctness tests should accompany components as they are implemented; Phase 7 i
 
 ## Installation / Getting Started
 
-There is no runnable application or installable package yet. Read this document and the completion report for the present scope. With access to the private repository, clone it using:
+There is no runnable application or installable package yet. Read this document for the present scope. Phase reports and supporting Markdown documents stay local; only this root README is intended for GitHub. With access to the private repository, clone it using:
 
 ```bash
 git clone https://github.com/SkrabMartin/hypnoreview.git
