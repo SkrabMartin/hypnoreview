@@ -2,7 +2,7 @@
 
 **Human-in-the-loop EEG sleep staging, uncertainty-aware review, and reproducible evaluation.**
 
-**Status: Phase 1 — Research & data audit**
+**Status: Phase 2 — Signal foundation**
 
 Domains: biomedical signal processing · neuroinformatics · machine learning · full-stack engineering · reproducible research.
 
@@ -14,7 +14,7 @@ HypnoReview is a planned platform for analyzing polysomnography (PSG), proposing
 
 An overnight recording can contain roughly a thousand 30-second epochs. Automated scoring can reduce repetitive work, but errors, artifacts, and ambiguous transitions still require expert verification. The research question is whether transparent prioritization can find more errors within a fixed review budget than random review or confidence alone.
 
-This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. All signal processing, models, APIs, interfaces, and evaluation capabilities described below are planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
+This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Models, APIs, interfaces, and evaluation remain planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
 
 ## Problem Statement
 
@@ -34,7 +34,7 @@ HypnoReview intends to combine stage probabilities, signal quality indicators, t
 
 ## Planned Features
 
-**These are proposed capabilities; none is implemented in Phase 0.**
+**The full platform remains planned. Only the audit and signal-import foundation are implemented; the items below describe the eventual scope.**
 
 | Area | Planned capabilities |
 |---|---|
@@ -81,7 +81,7 @@ The specification permits a smaller initial CLI prototype with local storage and
 
 ## Technology Stack
 
-All application technologies below are planned; Phase 0 installs or configures none of their dependencies.
+This table describes the target platform. Python, MNE, NumPy, SciPy, uv, and scientific test tooling are now configured for the local importer; service, UI, and model technologies remain planned.
 
 | Category | Technology | Intended purpose |
 |---|---|---|
@@ -106,13 +106,13 @@ All application technologies below are planned; Phase 0 installs or configures n
 | Containers | Docker, Docker Compose | Future reproducible local deployment. |
 | CI/CD | GitHub Actions | Current repository checks; application CI in later phases. |
 
-Exact versions and compatibility will be verified when components are introduced. No dependency lockfile or runnable environment exists yet.
+Exact versions and compatibility will be verified when components are introduced. Phase 2 provides a verified `uv.lock`, a Python package, and the local `hypnoreview-import` CLI. Service and ML dependencies remain deferred.
 
 ## Repository Structure
 
 ### Planned Repository Structure
 
-**This is the planned final architecture, not the current filesystem.** Names illustrate intended responsibilities and may be refined before implementation. No placeholder application files, Docker configurations, or lockfiles have been generated.
+**This is the planned final architecture, not the current filesystem.** Names illustrate intended responsibilities and may be refined before implementation. Files shown here remain planned except for the working components listed in the current structure below. No fake application scaffolding or Docker configuration is generated; the current uv.lock resolves the real signal package.
 
 ```text
 hypnoreview/
@@ -223,21 +223,32 @@ hypnoreview/
 ├── .github/workflows/repository-checks.yml
 ├── .editorconfig
 ├── .gitignore
+├── pyproject.toml
+├── uv.lock
 ├── requirements-audit.txt
-├── tools/audit_sleep_edf.py
-├── tests/unit/test_dataset_audit.py
+├── packages/
+│   ├── __init__.py
+│   ├── core/{__init__.py,annotations.py}
+│   └── signals/{__init__.py,edf_loader.py,epochs.py,quality.py,pipeline.py,cli.py}
+├── tools/{__init__.py,audit_sleep_edf.py}
+├── tests/
+│   ├── unit/{test_dataset_audit.py,test_signal_foundation.py}
+│   └── integration/test_edf_import.py
 ├── docs/datasets/DATASET_CARD.md        # local only, ignored
 ├── data/audit/                         # source metadata, manifest, samples; ignored
+├── derived/imports/                    # local JSON import results; ignored
 ├── .venv/                             # local audit environment; ignored
+├── .venv-signals/                      # Python 3.12 signal environment; ignored
 ├── HypnoReview_Projektova_Specifikace.md # local only, ignored
 ├── PHASE0_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE1_COMPLETION_REPORT.md         # local only, ignored
+├── PHASE2_COMPLETION_REPORT.md         # local only, ignored
 └── README.md
 ```
 
 ## Data Sources
 
-The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a dataset already imported or supported by this repository. The Phase 1 metadata audit matched all 197 recording/annotation pairs to the official subject tables: 153 SC nights from 78 participants and 44 ST nights from 22 participants. Signal headers and annotation coverage are not yet analyzed.
+The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a dataset already imported or supported by this repository. The Phase 1 metadata audit matched all 197 recording/annotation pairs to the official subject tables: 153 SC nights from 78 participants and 44 ST nights from 22 participants. Phase 2 validates original headers and annotation coverage for the five local development nights.
 
 Sleep-EDF uses historical Rechtschaffen & Kales (R&K) annotation conventions. A documented five-class mapping will combine historical stages 3 and 4 into N3, while preserving the original labels. Movement and unscored intervals must remain explicit and be excluded from standard five-class metrics under a predefined eligibility policy. This mapping does not make the source annotations equivalent to modern AASM scoring.
 
@@ -278,7 +289,7 @@ This execution sequence adds repository setup before the specification's origina
 |---|---|---|
 | **0** | GitHub setup, documentation, repository planning, minimal checks. | Complete; private GitHub repository configured. |
 | **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Complete; inventory, frozen split, five sample pairs and integrity checks verified. |
-| **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Not started. |
+| **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Complete; five real imports and synthetic edge-case tests verified. |
 | **3** | YASA integration and baseline sleep-stage classification. | Not started. |
 | **4** | Uncertainty scoring and intelligent review prioritization. | Not started. |
 | **5** | FastAPI backend, database, and interactive frontend. | Not started. |
@@ -290,7 +301,7 @@ Correctness tests should accompany components as they are implemented; Phase 7 i
 
 ## Installation / Getting Started
 
-There is no runnable application or installable package yet. Read this document for the present scope. Phase reports and supporting Markdown documents stay local; only this root README is intended for GitHub. With access to the private repository, clone it using:
+A local signal-import package is available; the interactive platform is not implemented. Read this document for the present scope. Phase reports and supporting Markdown documents stay local; only this root README is intended for GitHub. With access to the private repository, clone it using:
 
 ```bash
 git clone https://github.com/SkrabMartin/hypnoreview.git
@@ -313,9 +324,46 @@ python -m venv .venv
 
 Use `--mirror physionet` for the primary HTTPS endpoint. Downloads are opt-in, checksum-verified, atomic, and reused if already valid. A corrupt existing file produces an error rather than being silently overwritten. All generated data and manifests stay under ignored `data/audit/`. The source checksum-manifest hash is pinned; a changed snapshot requires explicit review. Regeneration refuses to overwrite a different frozen audit manifest.
 
-Participant splits use cohort-stratified SHA-256 ordering with seed 42 and floor(15% of participants) each for validation and test, with the remainder in training. This gives 72/14/14 participants and 143/26/28 nights across train/validation/test. Both nights stay together. The selected development nights are SC4011E0, SC4012E0, SC4021E0, ST7011J0, and ST7012J0, all from training. All ten PSG/hypnogram files were downloaded locally and verified against official checksums (209,392,104 bytes total). This sample does not represent an evaluation cohort. Stage prevalence and time alignment remain unmeasured. Pretraining overlap for YASA remains unresolved.
+Participant splits use cohort-stratified SHA-256 ordering with seed 42 and floor(15% of participants) each for validation and test, with the remainder in training. This gives 72/14/14 participants and 143/26/28 nights across train/validation/test. Both nights stay together. The selected development nights are SC4011E0, SC4012E0, SC4021E0, ST7011J0, and ST7012J0, all from training. All ten PSG/hypnogram files were downloaded locally and verified against official checksums (209,392,104 bytes total). This sample does not represent an evaluation cohort. No model performance has been measured; Phase 2 alignment is verified for the five selected nights. Pretraining overlap for YASA remains unresolved.
 
-The pinned XLS reader is the only audit dependency; no ML or application libraries are installed. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. Phase 0 CI was verified; Phase 1 changes have not been pushed or run on GitHub. Local dataset cards and phase reports remain excluded from Git.
+The pinned XLS reader is the only Phase 1 audit dependency. Phase 2 separately installs MNE, NumPy, SciPy, and development tools; no staging models are installed. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. The Phase 2 workflow changes have not been pushed or run on GitHub. Local dataset cards and phase reports remain excluded from Git.
+
+### Signal foundation (Phase 2)
+
+Create the separate signal environment with uv and Python 3.12 (Python 3.11+ is required). The environment override preserves an existing Phase 1 environment. PowerShell:
+
+```powershell
+$env:UV_PROJECT_ENVIRONMENT = ".venv-signals"
+uv sync --frozen --python 3.12
+uv run --frozen hypnoreview-import --samples
+uv run --frozen pytest -q
+uv run --frozen ruff check packages tests/integration/test_edf_import.py tests/unit/test_signal_foundation.py
+uv run --frozen mypy packages --follow-imports=silent
+```
+
+On another operating system use the equivalent environment-variable syntax. The sample command requires Phase 1's local manifest and the five checksum-verified training pairs. It performs no downloads. To import another recording, specify its paths and exact channel names:
+
+```powershell
+uv run --frozen hypnoreview-import --psg path/to/recording.edf --annotations path/to/hypnogram.edf --eeg "EEG Fpz-Cz" --eog "EOG horizontal"
+```
+
+Annotations are optional; missing references remain explicit. Only exact known Sleep-EDF channel names are suggested automatically. Unknown montages require `--eeg`; optional roles can be omitted. Channels must be distinct and have recognized voltage units. Native rates are retained, including SC's 1 Hz EMG envelope, which receives a descriptive warning. No filtering, resampling, padding, staging, or clinical artifact classification is performed.
+
+Imports go to ignored `derived/imports/` as JSON containing source hashes, version/configuration provenance, original annotation text, aligned intervals, epoch coverage, reference eligibility, and per-channel QC. Existing identical results are reused; differing results require a new `--output` directory. Signal reads are lazy and limited to 30 seconds and at most one million samples per channel. Patient/header identity text is not included in output metadata.
+
+EDF/EDF+C are supported; discontinuous EDF+D, truncated payloads, and invalid calibration are rejected. EDF date fields have no timezone, so their wall-clock dates share a UTC arithmetic frame without claiming a true acquisition timezone. Standalone annotations use their own MNE origin or EDF header start; offsets and annotation durations outside the PSG are recorded. Nonoverlapping files fail. Duplicate identical intervals are integrated as a union. Conflicting or mixed original labels, unknown labels, insufficient coverage, movement/unscored categories, and incomplete tails cannot become valid five-class references. Full epochs require at least 29.9 seconds of one original label. Original stages 3 and 4 map to N3 while their source text remains intact.
+
+QC reports sample counts, peak-to-peak and RMS amplitudes, nonfinite samples, flatness, and extreme amplitude. The default 0.5 µV flatness and 500 µV amplitude thresholds are configurable Python heuristics, not validated clinical decisions. ADC clipping detection and trained artifact models are not included.
+
+| Development recording | Epoch rows | Full epochs | Valid five-class references |
+|---|---:|---:|---:|
+| SC4011E0 | 2,802 | 2,802 | 2,802 |
+| SC4012E0 | 2,850 | 2,850 | 2,848 |
+| SC4021E0 | 2,804 | 2,804 | 2,804 |
+| ST7011J0 | 1,197 | 1,196 | 1,092 |
+| ST7012J0 | 1,044 | 1,044 | 1,040 |
+
+These are measured import/coverage counts, not classification benchmarks. ST7011J0 has a 20-second incomplete tail and trailing annotation gaps. SC annotation intervals extending beyond the PSG remain in provenance and do not create extra epochs. All data and reports stay local.
 
 ## Research Limitations and Safety
 

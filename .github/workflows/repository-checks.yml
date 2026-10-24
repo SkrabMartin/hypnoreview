@@ -27,7 +27,46 @@
         {
           "name": "Test dataset audit invariants (offline)",
           "shell": "bash",
-          "run": "python3 -m unittest discover -s tests/unit -v\npython3 -m compileall -q tools tests\n"
+          "run": "python3 -m unittest discover -s tests/unit -p test_dataset_audit.py -v\npython3 -m compileall -q tools tests packages\n"
+        }
+      ]
+    },
+    "signals": {
+      "runs-on": "ubuntu-latest",
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Set up Python",
+          "uses": "actions/setup-python@v5",
+          "with": {
+            "python-version": "3.12"
+          }
+        },
+        {
+          "name": "Set up uv",
+          "uses": "astral-sh/setup-uv@v6"
+        },
+        {
+          "name": "Install locked signal and development dependencies",
+          "run": "uv sync --frozen"
+        },
+        {
+          "name": "Run offline unit and synthetic EDF integration tests",
+          "run": "uv run --frozen pytest -q"
+        },
+        {
+          "name": "Check Phase 2 lint and formatting",
+          "run": "uv run --frozen ruff check packages tests/integration/test_edf_import.py tests/unit/test_signal_foundation.py\nuv run --frozen ruff format --check packages tests/integration/test_edf_import.py tests/unit/test_signal_foundation.py"
+        },
+        {
+          "name": "Check Phase 2 types",
+          "run": "uv run --frozen mypy packages --follow-imports=silent"
         }
       ]
     }
