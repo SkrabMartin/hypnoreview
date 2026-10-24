@@ -1,0 +1,30 @@
+{
+  "name": "Repository checks",
+  "on": {
+    "push": null,
+    "pull_request": null,
+    "workflow_dispatch": null
+  },
+  "permissions": {
+    "contents": "read"
+  },
+  "jobs": {
+    "documentation": {
+      "runs-on": "ubuntu-latest",
+      "steps": [
+        {
+          "name": "Check out repository",
+          "uses": "actions/checkout@v4",
+          "with": {
+            "persist-credentials": false
+          }
+        },
+        {
+          "name": "Validate Phase 0 documentation",
+          "shell": "bash",
+          "run": "set -euo pipefail\nfor file in README.md .gitignore .editorconfig PHASE0_COMPLETION_REPORT.md .github/workflows/repository-checks.yml; do\n  test -s \"$file\"\ndone\nheadings=(\n  'Project Overview' 'Problem Statement' 'Project Goals'\n  'Planned Features' 'System Architecture' 'Technology Stack'\n  'Repository Structure' 'Data Sources' 'Planned Machine Learning Workflow'\n  'Development Roadmap' 'Installation / Getting Started'\n  'Research Limitations and Safety' 'Contributing and License' 'References'\n)\nfor heading in \"${headings[@]}\"; do\n  grep -Fxq \"## $heading\" README.md\ndone\ngrep -Fxq '### Current Repository Structure' README.md\ngrep -Fxq '### Planned Repository Structure' README.md\nif git ls-files --error-unmatch HypnoReview_Projektova_Specifikace.md >/dev/null 2>&1; then\n  echo 'Private specification must remain untracked.' >&2\n  exit 1\nfi\n"
+        }
+      ]
+    }
+  }
+}

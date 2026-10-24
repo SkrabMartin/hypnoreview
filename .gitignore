@@ -1,0 +1,73 @@
+# Private project specification: local only; never publish.
+/HypnoReview_Projektova_Specifikace.md
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Frontend and builds
+node_modules/
+dist/
+build/
+coverage/
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Research data and generated outputs; docs/datasets remains trackable.
+/data/
+/datasets/
+/raw/
+/annotations/
+/derived/
+/exports/
+/artifacts/
+*.edf
+*.EDF
+*.bdf
+*.rec
+*.hyp
+*.psg
+*.fif
+*.parquet
+*.h5
+*.hdf5
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.ckpt
+checkpoints/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.log
+*.tmp
+*.temp

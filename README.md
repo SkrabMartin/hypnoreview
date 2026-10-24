@@ -1,0 +1,325 @@
+# HypnoReview
+
+**Human-in-the-loop EEG sleep staging, uncertainty-aware review, and reproducible evaluation.**
+
+**Status: Phase 0 — Repository initialization**
+
+Domains: biomedical signal processing · neuroinformatics · machine learning · full-stack engineering · reproducible research.
+
+HypnoReview is intended for research and education. It is not a clinically validated diagnostic medical device, and its proposed outputs are not medical diagnoses.
+
+## Project Overview
+
+HypnoReview is a planned platform for analyzing polysomnography (PSG), proposing sleep-stage labels, and directing human attention toward uncertain epochs. Rather than presenting an automated hypnogram as a final answer, it will connect predictions to signal context, uncertainty, signal quality, and an auditable review workflow.
+
+An overnight recording can contain roughly a thousand 30-second epochs. Automated scoring can reduce repetitive work, but errors, artifacts, and ambiguous transitions still require expert verification. The research question is whether transparent prioritization can find more errors within a fixed review budget than random review or confidence alone.
+
+This repository currently contains documentation and repository configuration only. All signal processing, models, APIs, interfaces, and evaluation capabilities described below are planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
+
+## Problem Statement
+
+Long overnight recordings make comprehensive manual verification expensive. Sleep stages change gradually, and transitions such as WAKE versus N1 may remain ambiguous even with neighboring context. Motion, electrode problems, and other artifacts can obscure the signal. Different electrode montages and participant populations can also change model behavior, so high confidence cannot guarantee correctness.
+
+HypnoReview intends to combine stage probabilities, signal quality indicators, transition context, and model disagreement into an explainable review queue. A reviewer will inspect synchronized signals and neighboring epochs before accepting, correcting, or marking a proposal unscorable. The usefulness of this ordering must be measured rather than assumed.
+
+## Project Goals
+
+- Reproduce sleep staging with explicit data, model, and preprocessing provenance.
+- Support human review through synchronized hypnograms, EEG windows, and signal context.
+- Expose uncertainty and the calculated reasons behind review priority.
+- Preserve original annotations separately from predictions and human revisions.
+- Evaluate classification and review efficiency without participant leakage.
+- Keep computation, API, persistence, and visualization modular and testable.
+- Enable future dataset adapters, model comparisons, and open-source collaboration once licensing is finalized.
+
+## Planned Features
+
+**These are proposed capabilities; none is implemented in Phase 0.**
+
+| Area | Planned capabilities |
+|---|---|
+| Signal Processing | EDF/EDF+ import; EEG/EOG and optional EMG validation; explicit filtering for visualization and custom models; 30-second segmentation; signal quality indicators; spectral features. |
+| Machine Learning | YASA staging; transparent custom baseline classifiers; stage probabilities; uncertainty scoring; model comparison and calibration. |
+| Review System | Explainable prioritization; hypnograms; EEG timeline inspection; manual annotation correction; revision history and audit trail. |
+| Engineering | FastAPI API; React dashboard; PostgreSQL; Redis/Celery jobs; S3-compatible storage; Docker deployment; reproducible experiments and exports. |
+
+The YASA input branch will follow its version-specific preprocessing contract without additional filtering or z-score normalization. Explicit DSP for visualization and custom classifiers will use a separate, recorded configuration. Deep learning, active learning, multi-scorer workflows, and domain-shift research are later extensions.
+
+## System Architecture
+
+**Planned architecture — no services are deployed or implemented.**
+
+```mermaid
+flowchart LR
+    Input[EDF / PSG input] --> API[FastAPI: import and validation]
+    UI[React / TypeScript frontend] -->|REST requests and reviews| API
+    API -->|metadata, runs, audit| DB[(PostgreSQL)]
+    API -->|raw files and exports| Storage[(MinIO / S3 object storage)]
+    API -->|job identifiers and configuration| Redis[(Redis broker)]
+    Redis --> Worker[Celery worker]
+    Storage -->|recordings| Worker
+    Worker --> MNE[MNE: metadata and signal preparation]
+    MNE -->|unfiltered mapped input| YASA[YASA staging]
+    MNE --> DSP[Separate DSP and feature extraction]
+    DSP --> ML[Custom baseline models]
+    YASA --> Rank[Uncertainty and review prioritization]
+    ML --> Rank
+    DSP -->|quality indicators| Rank
+    Rank -->|probabilities and review queue| DB
+    Worker -->|derived previews| Storage
+    DB --> Eval[Evaluation modules]
+    Eval -->|reports and metrics| Storage
+    API -->|signals, queue and results| UI
+    UI --> Human[Human review]
+    Human -->|audited correction| API
+    API --> Export[Results and CSV / JSON export]
+```
+
+The intended workflow is **EDF/PSG input → validation → signal processing → sleep staging → uncertainty analysis → review queue → human review → results and export**. The API will accept requests and maintain transactional metadata; workers will perform long calculations outside HTTP requests. PostgreSQL will be authoritative for analysis status, while Redis will transport jobs. Binary recordings belong in file/object storage, not the database or broker. The frontend will request bounded signal windows and paginated results rather than entire raw nights.
+
+The specification permits a smaller initial CLI prototype with local storage and SQLite before introducing the full service architecture. This is a future implementation choice. Predictions will belong to versioned analysis runs, and review changes will use append-only history with optimistic locking.
+
+## Technology Stack
+
+All application technologies below are planned; Phase 0 installs or configures none of their dependencies.
+
+| Category | Technology | Intended purpose |
+|---|---|---|
+| Primary backend language | Python 3.11+ | Typed domain logic and scientific computation. |
+| Frontend | React, TypeScript, Vite | Interactive research dashboard. |
+| API | FastAPI, Pydantic | Validated REST contracts and OpenAPI. |
+| EEG processing | MNE-Python | EDF metadata, channels, and annotation alignment. |
+| DSP | NumPy, SciPy | Spectral and statistical features. |
+| Sleep staging | YASA, targeting 0.8.x | Pretrained reference staging through a version-specific adapter. |
+| Custom ML | scikit-learn; optionally LightGBM | Transparent baseline comparisons and calibration. |
+| Database | PostgreSQL | Provenance, runs, predictions, and revision metadata. |
+| ORM | SQLAlchemy 2 | Transactional persistence. |
+| Database migrations | Alembic | Versioned schema changes. |
+| Task queue | Celery | Separate analytical workers. |
+| Message broker | Redis | Job transport; not the sole analysis-status store. |
+| Object storage | MinIO / S3-compatible | Raw recordings and derived binary artifacts. |
+| Visualization | Plotly.js, Canvas/WebGL where appropriate | Hypnograms, spectra, and bounded waveform rendering. |
+| Frontend server-state management | TanStack Query | Query caching and invalidation. |
+| Testing | pytest, HTTPX, Playwright | Scientific, API, and UI verification. |
+| Code quality | Ruff, mypy | Linting and static typing. |
+| Python package management | uv | Future dependency management and verified lockfile. |
+| Containers | Docker, Docker Compose | Future reproducible local deployment. |
+| CI/CD | GitHub Actions | Current repository checks; application CI in later phases. |
+
+Exact versions and compatibility will be verified when components are introduced. No dependency lockfile or runnable environment exists yet.
+
+## Repository Structure
+
+### Planned Repository Structure
+
+**This is the planned final architecture, not the current filesystem.** Names illustrate intended responsibilities and may be refined before implementation. No placeholder application files, Docker configurations, or lockfiles have been generated.
+
+```text
+hypnoreview/
+├── apps/
+│   ├── api/
+│   │   └── hypnoreview_api/
+│   │       ├── main.py
+│   │       ├── routers/
+│   │       │   ├── recordings.py
+│   │       │   ├── analysis.py
+│   │       │   └── reviews.py
+│   │       ├── schemas/
+│   │       ├── services/
+│   │       └── database/
+│   └── web/
+│       ├── src/
+│       │   ├── api/
+│       │   ├── components/
+│       │   │   ├── EEGViewer.tsx
+│       │   │   └── Hypnogram.tsx
+│       │   ├── pages/
+│       │   ├── hooks/
+│       │   ├── types/
+│       │   └── utils/
+│       ├── package.json
+│       └── vite.config.ts
+├── packages/
+│   ├── core/
+│   │   ├── annotations.py
+│   │   └── types.py
+│   ├── signals/
+│   │   ├── edf_loader.py
+│   │   ├── preprocessing.py
+│   │   ├── epochs.py
+│   │   └── quality.py
+│   ├── models/
+│   │   ├── yasa_adapter.py
+│   │   ├── baseline.py
+│   │   └── inference.py
+│   ├── ranking/
+│   │   ├── uncertainty.py
+│   │   └── prioritization.py
+│   └── evaluation/
+│       ├── splits.py
+│       ├── metrics.py
+│       └── benchmarking.py
+├── worker/
+│   ├── celery_app.py
+│   └── tasks.py
+├── migrations/
+├── experiments/
+│   ├── configs/
+│   ├── notebooks/
+│   └── reports/
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── docs/
+│   ├── architecture/
+│   ├── api/
+│   ├── datasets/
+│   └── experiments/
+├── infrastructure/
+│   ├── docker/
+│   └── compose/
+├── artifacts/
+├── .github/
+│   ├── workflows/
+│   │   └── repository-checks.yml
+│   └── ISSUE_TEMPLATE/
+├── .gitignore
+├── .editorconfig
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+├── pyproject.toml
+├── uv.lock
+├── README.md
+└── LICENSE
+```
+
+| Directory | Intended responsibility |
+|---|---|
+| `apps/api`, `apps/web` | HTTP boundary and frontend, respectively. |
+| `packages/core` | Shared types, annotation vocabulary, and validation contracts. |
+| `packages/signals` | EDF reading, epoch alignment, DSP, and signal quality. |
+| `packages/models` | Versioned model adapters and inference contracts. |
+| `packages/ranking` | Uncertainty and review ordering. |
+| `packages/evaluation` | Participant splits, metrics, and benchmark methodology. |
+| `worker` | Background job orchestration. |
+| `migrations` | Database evolution. |
+| `experiments` | Configurations, exploratory notebooks, and measured reports. |
+| `tests` | Unit, integration, and end-to-end verification. |
+| `docs` | Architecture, API, dataset, and experiment documentation. |
+| `infrastructure` | Deployment configuration introduced in later phases. |
+| `artifacts` | Local generated outputs; excluded from Git. |
+| `.github` | Repository checks and possible future collaboration templates. |
+
+`LICENSE` is conditional on explicit selection of a software license. `.env.example`, package manifests, and container files will be added only when meaningful configurations exist.
+
+### Current Repository Structure
+
+The actual Phase 0 working directory contains the following files, excluding Git internals. The local project specification is preserved and explicitly ignored; it is not part of any commit or upload.
+
+```text
+hypnoreview/
+├── .github/
+│   └── workflows/
+│       └── repository-checks.yml
+├── .editorconfig
+├── .gitignore
+├── HypnoReview_Projektova_Specifikace.md  # existing, local only, ignored
+├── PHASE0_COMPLETION_REPORT.md
+└── README.md
+```
+
+## Data Sources
+
+The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a dataset already imported or supported by this repository. The audit will examine the sleep-cassette (SC) and sleep-telemetry (ST) cohorts, available channels, participants, nights, and annotation coverage.
+
+Sleep-EDF uses historical Rechtschaffen & Kales (R&K) annotation conventions. A documented five-class mapping will combine historical stages 3 and 4 into N3, while preserving the original labels. Movement and unscored intervals must remain explicit and be excluded from standard five-class metrics under a predefined eligibility policy. This mapping does not make the source annotations equivalent to modern AASM scoring.
+
+Dataset provenance, SHA-256 checksums, licensing, citations, and verified participant identifiers will be recorded. All nights from a participant must remain in one partition. Dataset files must never be committed to Git. The dataset's ODC-By 1.0 license is separate from the eventual software license; attribution and redistribution conditions must be verified before publishing derived demo materials. No data is downloaded in Phase 0.
+
+## Planned Machine Learning Workflow
+
+1. Audit metadata and partition unique participants into development and held-out groups; freeze the manifest and seed.
+2. Validate channels, units, recording times, and annotation coverage. Establish one recording-relative timeline with full 30-second epochs; preserve incomplete tails and ambiguous intervals explicitly.
+3. Extract spectral and statistical features in a separate DSP branch. Fit imputation, scaling, and feature selection only on training data.
+4. Train a transparent baseline classifier using participant-aware validation.
+5. Run a pinned YASA adapter on appropriately mapped inputs, respecting its internal preprocessing. The specification targets the 0.8 `Hypnogram` interface; compatibility remains to be verified.
+6. Store stage probabilities in explicit `[WAKE, N1, N2, N3, REM]` order, with model and analysis-run provenance.
+7. Calculate entropy, margin uncertainty, signal quality, transition context, and model disagreement. Tune calibration and prioritization using development data only.
+8. Compare review ordering with random, confidence-only, and transition-based strategies at the same budget.
+9. Support human decisions with signal context and retain append-only revisions independently of immutable reference annotations.
+10. Evaluate on the protected test partition, recording configuration, package versions, model checksums, split identifiers, and source revision.
+
+Random epoch-level splitting is unsafe because neighboring epochs and repeated nights from the same participant share physiology and recording characteristics. Their appearance in both training and testing can inflate performance. A proposed 70/15/15 participant split will be assessed against cohort size; group-aware cross-validation may be more appropriate for small samples. Pretrained YASA dataset overlap must be audited separately: a local split alone cannot establish independent external validation.
+
+| Proposed metric | Interpretation |
+|---|---|
+| Macro-F1 | Equal-weight stage-level classification summary. |
+| Balanced accuracy | Mean recall across stages. |
+| Cohen's kappa | Agreement accounting for expected chance agreement. |
+| Confusion matrix | Stage-specific error patterns, including difficult N1 cases. |
+| Brier score and log-loss | Probability quality, complemented by calibration diagrams. |
+| Error recall at review budget | Fraction of reference-defined errors found in the reviewed subset. |
+| Precision at review budget | Fraction of reviewed epochs that are reference-defined errors. |
+
+Review curves will include proposed 10%, 20%, and 30% budgets, participant-level bootstrap confidence intervals, and stage/cohort breakdowns. Simulated correction against reference labels must be reported separately from measured expert time savings. No benchmarks or performance claims exist yet.
+
+## Development Roadmap
+
+This execution sequence adds repository setup before the specification's original P0. Consequently, specification P0–P7 map to the Phase 1–8 sequence below. The technical scope is preserved; implementation phases remain future work.
+
+| Phase | Scope | Status |
+|---|---|---|
+| **0** | GitHub setup, documentation, repository planning, minimal checks. | Current; local setup with GitHub authentication pending. |
+| **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Not started. |
+| **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Not started. |
+| **3** | YASA integration and baseline sleep-stage classification. | Not started. |
+| **4** | Uncertainty scoring and intelligent review prioritization. | Not started. |
+| **5** | FastAPI backend, database, and interactive frontend. | Not started. |
+| **6** | ML evaluation, subject-wise benchmarking, and reproducibility. | Not started. |
+| **7** | Broader testing, deployment, CI improvements, and portfolio demo. | Not started. |
+| **8 (optional)** | Active learning, multi-scorer workflows, advanced models, and research extensions. | Not started. |
+
+Correctness tests should accompany components as they are implemented; Phase 7 is not a reason to defer foundational validation. No Phase 1 tasks are performed during repository initialization.
+
+## Installation / Getting Started
+
+There is no runnable application or installable package yet. Read this document and the completion report for the present scope. Once a remote is configured and access granted, clone it using its actual URL:
+
+```bash
+git clone <repository-url>
+cd hypnoreview
+```
+
+**Application installation and execution instructions will be added as the corresponding components are implemented.**
+
+The only current automation checks required repository files and documentation headings. It does not run scientific, API, or frontend tests. GitHub execution has not been verified during local setup.
+
+## Research Limitations and Safety
+
+- Research and educational use only; outputs must not be presented as medical diagnoses or clinical validation.
+- Human review remains necessary, especially for pathological PSG, ambiguous epochs, and unfamiliar montages.
+- Historical R&K annotations and their mapping must be described explicitly.
+- Pretrained models may overlap benchmark data; unresolved overlap must qualify independence claims.
+- Population, montage, device, and acquisition differences may reduce generalization; confidence is not a safety guarantee.
+- Sensitive PSG and identifying metadata require appropriate access controls, pseudonymization, secure storage, and separation from public demo assets.
+- Risk scores represent review priority, not clinical severity. Any future explanation must derive from calculated evidence rather than invented clinical interpretations.
+
+## Contributing and License
+
+The project intends to support open-source collaboration. Future contributions should identify the relevant phase, discuss scope, preserve provenance, and include verification appropriate to the change. Do not submit raw recordings, participant identifiers, credentials, or unlicensed model artifacts. Repository setup does not authorize implementation of later phases.
+
+**The software license has not been finalized. No LICENSE file is provided, and this repository does not yet grant an open-source license.** Selection requires explicit owner authorization. Dataset and third-party model licenses remain separate.
+
+## References
+
+- [PhysioNet Sleep-EDF Expanded](https://physionet.org/content/sleep-edfx/1.0.0/)
+- [MNE-Python documentation](https://mne.tools/stable/)
+- [YASA documentation](https://yasa-sleep.org/)
+- [FastAPI documentation](https://fastapi.tiangolo.com/)
+- [scikit-learn documentation](https://scikit-learn.org/stable/)
+- [React documentation](https://react.dev/)
+- [PostgreSQL documentation](https://www.postgresql.org/docs/)
+
+These are reference links, not a claim that the proposed integration has been tested. Dataset citations and dependency details will be verified in their corresponding phases.
