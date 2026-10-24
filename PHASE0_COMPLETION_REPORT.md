@@ -23,11 +23,12 @@ No existing user file was modified. `HypnoReview_Projektova_Specifikace.md` rema
 ## Repository Status
 
 - Branch: `main`.
-- Remote URL: none configured.
+- Remote URL: `https://github.com/SkrabMartin/hypnoreview.git`.
+- GitHub repository: https://github.com/SkrabMartin/hypnoreview (private).
 - GitHub CLI: installed, version 2.102.0.
-- Authentication: `gh auth status` reports an invalid saved token for `SkrabMartin`.
-- GitHub repository creation: not performed; no usable CLI authentication and no repository-creation capability in the available GitHub connector.
-- Push status: not attempted; no authenticated remote.
+- Authentication: successfully verified for `SkrabMartin` after owner completed browser login.
+- GitHub repository creation: completed with `gh repo create hypnoreview --private --source . --remote origin`.
+- Push status: pending final documentation update and push verification.
 - Initial documentation commit: `2b1113706291d6df32a93e91799ea0636eb8f9ad` (`chore: initialize HypnoReview repository and documentation`). A subsequent documentation-only commit records this identifier and final results; use `git rev-parse HEAD` for the current tip.
 
 After restoring authentication, run the following from this project directory. The first two commands verify that the private specification is ignored and absent from the tracked file list; the second must print nothing.
@@ -70,7 +71,7 @@ The future tree is documentation only. The current tree includes the five Phase 
 
 ## Known Limitations
 
-- GitHub authentication blocks remote creation and push. Local setup can be completed independently.
+- The earlier authentication blocker has been resolved.
 - Software licensing is undecided; no open-source license grant is claimed.
 - Reference URLs are documentation links, not evidence of tested integration. Network link reachability and scientific API compatibility are outside these local checks.
 - Dataset choices, cohort balance, subject split policy, YASA pretraining overlap, annotation status vocabulary, and exact dependency versions remain future decisions.
@@ -81,4 +82,26 @@ Phase 1 will audit dataset provenance, SC/ST participant and night metadata, lic
 
 ## Final Verdict
 
-**PHASE 0 PARTIALLY COMPLETE** — local documentation and repository setup are complete; GitHub creation and push remain blocked by authentication.
+**PHASE 0 PARTIALLY COMPLETE** — local setup and private GitHub creation are complete; final push verification is pending.
+
+## Follow-up Verification and Architecture Changes
+
+Authentication was rechecked after owner login; the repository did not previously exist under the intended account. A private remote was created without changing existing history or global Git configuration. No services, APIs, schemas, dependencies, or application features were added. README clone instructions and roadmap status were updated. Only README and this report were modified in this follow-up.
+
+The existing workflow shell checks were rerun successfully during the preceding repository inspection, together with tracked-file inventory, Markdown fence checks, URL-format checks, workflow JSON/YAML-subset parsing, minimal permission assertions, file-size checks, and a heuristic credential scan. No application tests are applicable. GitHub CI results are reported separately from local checks.
+
+## Phase Acceptance Criteria
+
+| Requirement | Result |
+|---|---|
+| Local Git repository and main branch | PASS |
+| Complete README with planned/current trees | PASS |
+| Meaningful minimal configuration and documentation workflow | PASS |
+| No implementation or dataset work | PASS |
+| Specification unchanged, ignored, and absent from all commits | PASS |
+| Private GitHub repository and remote | PASS |
+| Initial documentation commits | PASS |
+| Push and final remote verification | BLOCKED — pending push |
+| Software license left unselected | PASS |
+
+The next phase remains Phase 1: research and data audit (original specification P0). It has not started. This follow-up does not authorize or launch it.

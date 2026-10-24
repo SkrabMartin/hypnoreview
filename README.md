@@ -271,7 +271,7 @@ This execution sequence adds repository setup before the specification's origina
 
 | Phase | Scope | Status |
 |---|---|---|
-| **0** | GitHub setup, documentation, repository planning, minimal checks. | Current; local setup with GitHub authentication pending. |
+| **0** | GitHub setup, documentation, repository planning, minimal checks. | Complete; private GitHub repository configured. |
 | **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Not started. |
 | **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Not started. |
 | **3** | YASA integration and baseline sleep-stage classification. | Not started. |
@@ -285,10 +285,10 @@ Correctness tests should accompany components as they are implemented; Phase 7 i
 
 ## Installation / Getting Started
 
-There is no runnable application or installable package yet. Read this document and the completion report for the present scope. Once a remote is configured and access granted, clone it using its actual URL:
+There is no runnable application or installable package yet. Read this document and the completion report for the present scope. With access to the private repository, clone it using:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/SkrabMartin/hypnoreview.git
 cd hypnoreview
 ```
 
