@@ -2,7 +2,7 @@
 
 **Human-in-the-loop EEG sleep staging, uncertainty-aware review, and reproducible evaluation.**
 
-**Status: Phase 3 — Baseline models**
+**Status: Phase 4 — Review engine**
 
 Domains: biomedical signal processing · neuroinformatics · machine learning · full-stack engineering · reproducible research.
 
@@ -14,7 +14,7 @@ HypnoReview is a planned platform for analyzing polysomnography (PSG), proposing
 
 An overnight recording can contain roughly a thousand 30-second epochs. Automated scoring can reduce repetitive work, but errors, artifacts, and ambiguous transitions still require expert verification. The research question is whether transparent prioritization can find more errors within a fixed review budget than random review or confidence alone.
 
-This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Phase 3 adds YASA inference, a transparent classifier, versioned probability outputs, and small-sample subject-wise development metrics. APIs, interfaces, review ranking, and the locked benchmark remain planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
+This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Phase 3 adds YASA inference, a transparent classifier, versioned probability outputs, and small-sample subject-wise development metrics. Phase 4 adds explainable review queues and equal-budget development comparisons. APIs, interactive interfaces, and the locked benchmark remain planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
 
 ## Problem Statement
 
@@ -231,15 +231,17 @@ hypnoreview/
 │   ├── core/{__init__.py,annotations.py}
 │   ├── signals/{__init__.py,edf_loader.py,epochs.py,quality.py,pipeline.py,cli.py}
 │   ├── models/{__init__.py,contracts.py,features.py,baseline.py,yasa_adapter.py,cli.py}
-│   └── evaluation/{__init__.py,classification.py}
+│   ├── evaluation/{__init__.py,classification.py,review.py}
+│   └── ranking/{__init__.py,uncertainty.py,context.py,prioritization.py,cli.py}
 ├── tools/{__init__.py,audit_sleep_edf.py}
 ├── tests/
-│   ├── unit/{test_dataset_audit.py,test_signal_foundation.py,test_models.py}
-│   └── integration/{test_edf_import.py,test_yasa_adapter.py,test_model_development_guard.py}
+│   ├── unit/{test_dataset_audit.py,test_signal_foundation.py,test_models.py,test_review_engine.py}
+│   └── integration/{test_edf_import.py,test_yasa_adapter.py,test_model_development_guard.py,test_review_reference_separation.py}
 ├── docs/datasets/DATASET_CARD.md        # local only, ignored
 ├── data/audit/                         # source metadata, manifest, samples; ignored
 ├── derived/imports/                    # local JSON import results; ignored
 ├── artifacts/models/                   # model parameters, features, probabilities, metrics; ignored
+├── artifacts/review/                   # ranked queues, comparison metrics, curve PNGs; ignored
 ├── .venv/                             # local audit environment; ignored
 ├── .venv-signals/                      # Python 3.12 signal environment; ignored
 ├── HypnoReview_Projektova_Specifikace.md # local only, ignored
@@ -247,6 +249,7 @@ hypnoreview/
 ├── PHASE1_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE2_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE3_COMPLETION_REPORT.md         # local only, ignored
+├── PHASE4_COMPLETION_REPORT.md         # local only, ignored
 └── README.md
 ```
 
@@ -295,7 +298,7 @@ This execution sequence adds repository setup before the specification's origina
 | **1** | Dataset audit, metadata, subject manifests, licenses, five sample recordings, dataset card and validation script. | Complete; inventory, frozen split, five sample pairs and integrity checks verified. |
 | **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Complete; five real imports and synthetic edge-case tests verified. |
 | **3** | YASA integration and baseline sleep-stage classification. | Complete; real inference, logistic baseline and participant-held-out development checks verified. |
-| **4** | Uncertainty scoring and intelligent review prioritization. | Not started. |
+| **4** | Uncertainty scoring and intelligent review prioritization. | Complete; cross-fitted queues and six equal-budget development comparisons verified. |
 | **5** | FastAPI backend, database, and interactive frontend. | Not started. |
 | **6** | ML evaluation, subject-wise benchmarking, and reproducibility. | Not started. |
 | **7** | Broader testing, deployment, CI improvements, and portfolio demo. | Not started. |
@@ -399,9 +402,46 @@ The initial check uses leave-one-participant-out evaluation on **three local tra
 | Log-loss | 1.69740 | 0.39526 |
 | Multiclass Brier (sum across classes) | 0.68615 | 0.19724 |
 
-These columns use different training provenance; they are not a controlled claim that one model generalizes better. Confusion matrices and exact values are saved locally. Cohort-level uncertainty intervals, calibration experiments, and the locked subject-wise benchmark remain future evaluation work. Review scores and ranking are not implemented in Phase 3.
+These columns use different training provenance; they are not a controlled claim that one model generalizes better. Confusion matrices and exact values are saved locally. Cohort-level uncertainty intervals, calibration experiments, and the locked subject-wise benchmark remain future evaluation work. Phase 3 supplies model outputs; the Phase 4 review engine below consumes them.
 
 **Known YASA compatibility limits:** its bundled model emits a scikit-learn LabelEncoder serialization warning (trained with 0.24.2, loaded with 1.7.2), and pandas emits a deprecated inplace-operation warning. Both are retained in every run's model metadata. Successful local schema/count checks do not prove cross-version equivalence. Sleep-EDF's Fpz-Cz montage also differs from YASA's preferred central derivations. The upstream [training repository](https://github.com/raphaelvallat/yasa_classifier) lists CCSHS, CFS, CHAT, HomePAP, MESA, MrOS, and SHHS; record/participant overlap with these data has not been independently verified. No independent external-validation claim is made. Cite [Vallat and Walker (2021)](https://doi.org/10.7554/eLife.70092) when using YASA.
+
+### Review engine (Phase 4)
+
+The review CLI consumes a completed Phase 3 run, its original imports, and the frozen participant manifest. It does not retrain YASA, download data, or open locked validation/test participants. Replace the model-run path with the run ID produced by your local model command:
+
+```powershell
+$env:UV_PROJECT_ENVIRONMENT = ".venv-signals"
+uv sync --frozen --python 3.12
+$modelRun = "artifacts/models/REPLACE_WITH_YOUR_PHASE3_RUN_ID"
+uv run --frozen hypnoreview-review --model-run $modelRun --bootstrap-samples 500
+```
+
+Results are written under ignored `artifacts/review/<review-run-id>/`: one queue per recording, a combined queue, `review-metrics.json`, and a standalone `review-curves.png`. Reference labels are absent from queue rows. Each row contains the original prediction probabilities, review score, contributing components, computed explanation, and secondary-model availability/stage. Incomplete tails remain explicit unavailable entries. All references and source annotations remain unchanged.
+
+The fixed proposed score is `0.45*entropy + 0.20*margin_uncertainty + 0.15*transition_surprise + 0.10*signal_quality + 0.10*model_disagreement`. Components lie in [0,1]. Weights and explanation thresholds are unvalidated heuristics, not calibrated error probabilities or clinical severity.
+
+- Entropy is normalized by log(5); margin uncertainty is one minus the top-two probability difference.
+- Transition probabilities use Laplace-smoothed counts from valid adjacent reference epochs in **other participants' training nights**. Surprise uses the previous model-predicted stage, resets across gaps/night boundaries, and is normalized by the row-count bound. The current participant's references never enter scoring.
+- EEG/EOG amplitude bounds use the 95th and 99.5th peak-to-peak percentiles from those other training participants. Existing nonfinite, flatness, and extreme-amplitude flags raise QC priority. Missing QC channels provide no evidence and contribute zero.
+- Disagreement compares YASA with the saved baseline fold that excluded the current participant, including predictions for full epochs lacking reference labels. It uses an argmax disagreement indicator; no in-sample final-model predictions enter priority. Missing secondary features contribute zero and are marked unavailable.
+
+`strict_priority` sorts by descending score with deterministic recording/epoch ties. `coverage_aware` first admits epochs that are more than two epochs apart within each recording, then appends deferred neighbors in score order; it remains a complete permutation. Separate confidence-only, entropy-only, predicted-stage-boundary, and deterministic random (seed 42) orders provide comparison baselines. Ordering is offline; neighboring predicted stages may be used, and it is not a real-time workflow.
+
+Scores/orders are fixed before the evaluator joins eligible original references. Review budgets are independently rounded up per recording as `ceil(fraction * eligible epochs)`; every method uses the same pool and exact counts. Curves cover 0–100%, including error recall, precision, and area under the review-recall curve. Zero-error recall is explicitly undefined. Percentile intervals resample participants with all their nights together (500 draws, seed 42); they are conditional on these fitted predictions and orderings. Only three participant clusters are available, so intervals are unstable and do not establish a population-level improvement.
+
+Measured development simulation: 10,586 eligible epochs, 1,323 YASA/reference disagreements. At a 20% nominal budget, all six methods inspect exactly 2,119 eligible epochs:
+
+| Ordering | Errors found | Error recall | Precision |
+|---|---:|---:|---:|
+| Strict priority | 775 | 58.58% | 36.57% |
+| Confidence only | 764 | 57.75% | 36.05% |
+| Entropy only | 699 | 52.83% | 32.99% |
+| Predicted stage boundary | 625 | 47.24% | 29.50% |
+| Coverage aware | 466 | 35.22% | 21.99% |
+| Seeded random | 278 | 21.01% | 13.12% |
+
+Strict priority's 95% participant-bootstrap recall interval is 45.29–69.71%; confidence-only is 44.23–69.34%. The small difference does not establish superiority. Coverage suppression performs worse at this budget and is retained transparently. The chart shades the strict-priority interval; every method's intervals and 10/20/30% results are available in local JSON. One random ordering is used, so those intervals do not include randomness from rerandomizing review order. These results simulate finding reference disagreements; no human reviewer time savings, clinical corrections, or final locked-test performance has been measured.
 
 ## Research Limitations and Safety
 

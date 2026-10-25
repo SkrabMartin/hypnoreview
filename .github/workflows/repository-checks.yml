@@ -61,11 +61,11 @@
           "run": "uv run --frozen pytest -q"
         },
         {
-          "name": "Check model and signal lint and formatting",
-          "run": "uv run --frozen ruff check packages tests/integration tests/unit/test_signal_foundation.py tests/unit/test_models.py\nuv run --frozen ruff format --check packages tests/integration tests/unit/test_signal_foundation.py tests/unit/test_models.py"
+          "name": "Check scientific and review lint and formatting",
+          "run": "uv run --frozen ruff check packages tests/integration tests/unit/test_signal_foundation.py tests/unit/test_models.py tests/unit/test_review_engine.py\nuv run --frozen ruff format --check packages tests/integration tests/unit/test_signal_foundation.py tests/unit/test_models.py tests/unit/test_review_engine.py"
         },
         {
-          "name": "Check model and signal types",
+          "name": "Check scientific and review types",
           "run": "uv run --frozen mypy packages --follow-imports=silent"
         }
       ]
