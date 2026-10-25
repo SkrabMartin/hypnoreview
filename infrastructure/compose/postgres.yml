@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: hypnoreview
+      POSTGRES_PASSWORD: ${HYPNOREVIEW_DB_PASSWORD:?Set HYPNOREVIEW_DB_PASSWORD}
+      POSTGRES_DB: hypnoreview
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - reviewer-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hypnoreview"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+volumes:
+  reviewer-postgres:

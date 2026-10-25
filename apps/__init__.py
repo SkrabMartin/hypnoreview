@@ -1,0 +1,1 @@
+"""HypnoReview applications."""

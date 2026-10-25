@@ -2,7 +2,7 @@
 
 **Human-in-the-loop EEG sleep staging, uncertainty-aware review, and reproducible evaluation.**
 
-**Status: Phase 4 — Review engine**
+**Status: Phase 5 — Full-stack local MVP**
 
 Domains: biomedical signal processing · neuroinformatics · machine learning · full-stack engineering · reproducible research.
 
@@ -14,7 +14,7 @@ HypnoReview is a planned platform for analyzing polysomnography (PSG), proposing
 
 An overnight recording can contain roughly a thousand 30-second epochs. Automated scoring can reduce repetitive work, but errors, artifacts, and ambiguous transitions still require expert verification. The research question is whether transparent prioritization can find more errors within a fixed review budget than random review or confidence alone.
 
-This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Phase 3 adds YASA inference, a transparent classifier, versioned probability outputs, and small-sample subject-wise development metrics. Phase 4 adds explainable review queues and equal-budget development comparisons. APIs, interactive interfaces, and the locked benchmark remain planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
+This repository contains documentation, repository configuration, and an operational metadata/file-integrity audit with offline tests. The Phase 2 CLI now loads EDF signals, aligns source annotations, creates 30-second epochs, and computes descriptive QC. Phase 3 adds YASA inference, a transparent classifier, versioned probability outputs, and small-sample subject-wise development metrics. Phase 4 adds explainable review queues and equal-budget development comparisons. Phase 5 adds a loopback FastAPI service, PostgreSQL persistence, and a React reviewer with synchronized signal context and audited corrections. The locked benchmark remains planned. The intended end-to-end system also includes data provenance, annotation management, model versioning, and reproducible experiments, extending beyond a standalone classification notebook.
 
 ## Problem Statement
 
@@ -34,7 +34,7 @@ HypnoReview intends to combine stage probabilities, signal quality indicators, t
 
 ## Planned Features
 
-**The full platform remains planned. The audit, signal-import foundation, and baseline staging are implemented; the items below describe the eventual scope.**
+**The audit, signals, baseline models, review engine and local interactive reviewer are implemented. The table below describes the eventual platform, including future services.**
 
 | Area | Planned capabilities |
 |---|---|
@@ -47,7 +47,7 @@ The YASA input branch will follow its version-specific preprocessing contract wi
 
 ## System Architecture
 
-**Planned architecture — no services are deployed or implemented.**
+**Target architecture — the local API, PostgreSQL database and React reviewer are implemented. Redis/Celery, MinIO and remote deployment remain planned. The MVP uses local files and explicit CLI computations/registration.**
 
 ```mermaid
 flowchart LR
@@ -102,11 +102,11 @@ This table describes the target platform. Python, MNE, NumPy, SciPy, uv, and sci
 | Frontend server-state management | TanStack Query | Query caching and invalidation. |
 | Testing | pytest, HTTPX, Playwright | Scientific, API, and UI verification. |
 | Code quality | Ruff, mypy | Linting and static typing. |
-| Python package management | uv | Future dependency management and verified lockfile. |
-| Containers | Docker, Docker Compose | Future reproducible local deployment. |
-| CI/CD | GitHub Actions | Current repository checks; application CI in later phases. |
+| Python package management | uv | Locked Python dependencies and reproducible environments. |
+| Containers | Docker, Docker Compose | PostgreSQL development service; complete application deployment remains future work. |
+| CI/CD | GitHub Actions | Offline scientific/API tests, PostgreSQL contracts and frontend build/browser checks. |
 
-Exact versions and compatibility will be verified when components are introduced. Phase 2 provides a verified `uv.lock`, a Python package, and the local `hypnoreview-import` CLI. Service and ML dependencies remain deferred.
+Exact versions and compatibility will be verified when components are introduced. Phase 2 provides a verified `uv.lock`, a Python package, and the local `hypnoreview-import` CLI. Phase 3 adds ML dependencies; Phase 5 adds real API/ORM/migration dependencies and a separately locked npm frontend.
 
 ## Repository Structure
 
@@ -226,6 +226,16 @@ hypnoreview/
 ├── pyproject.toml
 ├── uv.lock
 ├── requirements-audit.txt
+├── alembic.ini
+├── .env.example                       # variable names and nonsecret examples
+├── apps/
+│   ├── __init__.py
+│   ├── api/{__init__.py,hypnoreview_api/{__init__.py,database.py,ingest.py,main.py,signals.py}}
+│   └── web/
+│       ├── {package.json,package-lock.json,tsconfig.json,vite.config.ts,playwright.config.ts,index.html}
+│       └── src/{api.ts,main.tsx,style.css,components/Plots.tsx}
+├── migrations/{env.py,versions/0001_reviewer.py}
+├── infrastructure/compose/postgres.yml
 ├── packages/
 │   ├── __init__.py
 │   ├── core/{__init__.py,annotations.py}
@@ -236,7 +246,8 @@ hypnoreview/
 ├── tools/{__init__.py,audit_sleep_edf.py}
 ├── tests/
 │   ├── unit/{test_dataset_audit.py,test_signal_foundation.py,test_models.py,test_review_engine.py}
-│   └── integration/{test_edf_import.py,test_yasa_adapter.py,test_model_development_guard.py,test_review_reference_separation.py}
+│   ├── integration/{test_edf_import.py,test_yasa_adapter.py,test_model_development_guard.py,test_review_reference_separation.py,test_reviewer_api.py,test_reviewer_registration.py,test_reviewer_migrations.py}
+│   └── e2e/{serve_reviewer.py,reviewer.spec.ts}
 ├── docs/datasets/DATASET_CARD.md        # local only, ignored
 ├── data/audit/                         # source metadata, manifest, samples; ignored
 ├── derived/imports/                    # local JSON import results; ignored
@@ -250,12 +261,13 @@ hypnoreview/
 ├── PHASE2_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE3_COMPLETION_REPORT.md         # local only, ignored
 ├── PHASE4_COMPLETION_REPORT.md         # local only, ignored
+├── PHASE5_COMPLETION_REPORT.md         # local only, ignored
 └── README.md
 ```
 
 ## Data Sources
 
-The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a dataset already imported or supported by this repository. The Phase 1 metadata audit matched all 197 recording/annotation pairs to the official subject tables: 153 SC nights from 78 participants and 44 ST nights from 22 participants. Phase 2 validates original headers and annotation coverage for the five local development nights.
+The primary planned source is [Sleep-EDF Database Expanded v1.0.0](https://physionet.org/content/sleep-edfx/1.0.0/) on PhysioNet. Its EDF PSG recordings and associated hypnograms are candidates for research experiments, not a guarantee of support for arbitrary PSG formats. Five development recordings are imported and available in the local reviewer. The Phase 1 metadata audit matched all 197 recording/annotation pairs to the official subject tables: 153 SC nights from 78 participants and 44 ST nights from 22 participants. Phase 2 validates original headers and annotation coverage for the five local development nights.
 
 Sleep-EDF uses historical Rechtschaffen & Kales (R&K) annotation conventions. A documented five-class mapping will combine historical stages 3 and 4 into N3, while preserving the original labels. Movement and unscored intervals must remain explicit and be excluded from standard five-class metrics under a predefined eligibility policy. This mapping does not make the source annotations equivalent to modern AASM scoring.
 
@@ -286,11 +298,11 @@ Random epoch-level splitting is unsafe because neighboring epochs and repeated n
 | Error recall at review budget | Fraction of reference-defined errors found in the reviewed subset. |
 | Precision at review budget | Fraction of reviewed epochs that are reference-defined errors. |
 
-Review curves will include proposed 10%, 20%, and 30% budgets, participant-level bootstrap confidence intervals, and stage/cohort breakdowns. Simulated correction against reference labels must be reported separately from measured expert time savings. No benchmarks or performance claims exist yet.
+Review curves will include proposed 10%, 20%, and 30% budgets, participant-level bootstrap confidence intervals, and stage/cohort breakdowns. Simulated correction against reference labels must be reported separately from measured expert time savings. The measured small-sample development comparisons below are distinct from the future locked benchmark.
 
 ## Development Roadmap
 
-This execution sequence adds repository setup before the specification's original P0. Consequently, specification P0–P7 map to the Phase 1–8 sequence below. The technical scope is preserved; implementation phases remain future work.
+This execution sequence adds repository setup before the specification's original P0. Consequently, specification P0–P7 map to the Phase 1–8 sequence below. The technical scope is preserved; statuses below distinguish implemented work from future phases.
 
 | Phase | Scope | Status |
 |---|---|---|
@@ -299,7 +311,7 @@ This execution sequence adds repository setup before the specification's origina
 | **2** | EDF processing, annotation synchronization, epochs, and signal foundation. | Complete; five real imports and synthetic edge-case tests verified. |
 | **3** | YASA integration and baseline sleep-stage classification. | Complete; real inference, logistic baseline and participant-held-out development checks verified. |
 | **4** | Uncertainty scoring and intelligent review prioritization. | Complete; cross-fitted queues and six equal-budget development comparisons verified. |
-| **5** | FastAPI backend, database, and interactive frontend. | Not started. |
+| **5** | FastAPI backend, database, and interactive frontend. | Complete; local PostgreSQL reviewer, migrations, audit, signal windows and exports verified. |
 | **6** | ML evaluation, subject-wise benchmarking, and reproducibility. | Not started. |
 | **7** | Broader testing, deployment, CI improvements, and portfolio demo. | Not started. |
 | **8 (optional)** | Active learning, multi-scorer workflows, advanced models, and research extensions. | Not started. |
@@ -308,14 +320,14 @@ Correctness tests should accompany components as they are implemented; Phase 7 i
 
 ## Installation / Getting Started
 
-A local signal-import package is available; the interactive platform is not implemented. Read this document for the present scope. Phase reports and supporting Markdown documents stay local; only this root README is intended for GitHub. With access to the private repository, clone it using:
+The scientific CLI pipeline and a local single-user interactive reviewer are available. Read this document for the present scope. Phase reports and supporting Markdown documents stay local; only this root README is intended for GitHub. With access to the private repository, clone it using:
 
 ```bash
 git clone https://github.com/SkrabMartin/hypnoreview.git
 cd hypnoreview
 ```
 
-**Application installation and execution instructions will be added as the corresponding components are implemented.**
+Use the Phase 5 instructions below for the local reviewer. Worker orchestration and remote deployment instructions will be added when those components are implemented.
 
 ### Dataset audit (Phase 1 only)
 
@@ -333,7 +345,7 @@ Use `--mirror physionet` for the primary HTTPS endpoint. Downloads are opt-in, c
 
 Participant splits use cohort-stratified SHA-256 ordering with seed 42 and floor(15% of participants) each for validation and test, with the remainder in training. This gives 72/14/14 participants and 143/26/28 nights across train/validation/test. Both nights stay together. The selected development nights are SC4011E0, SC4012E0, SC4021E0, ST7011J0, and ST7012J0, all from training. All ten PSG/hypnogram files were downloaded locally and verified against official checksums (209,392,104 bytes total). This sample does not represent an evaluation cohort. Only small-sample development metrics have been measured; Phase 2 alignment is verified for the five selected nights. Pretraining overlap for YASA remains unresolved.
 
-The pinned XLS reader is the only Phase 1 audit dependency. Phase 2 separately installs MNE, NumPy, SciPy, and development tools; Phase 3 adds pinned YASA and scikit-learn dependencies. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. The Phase 2 workflow changes have not been pushed or run on GitHub. Local dataset cards and phase reports remain excluded from Git.
+The pinned XLS reader is the only Phase 1 audit dependency. Phase 2 separately installs MNE, NumPy, SciPy, and development tools; Phase 3 adds pinned YASA and scikit-learn dependencies. The audit can run under Python 3.10+, while the planned application still targets Python 3.11+. CI includes offline audit invariants plus repository checks. Phase 5 extends local checks and the workflow; no GitHub CI result is claimed for unpushed changes. Local dataset cards and phase reports remain excluded from Git.
 
 ### Signal foundation (Phase 2)
 
@@ -442,6 +454,86 @@ Measured development simulation: 10,586 eligible epochs, 1,323 YASA/reference di
 | Seeded random | 278 | 21.01% | 13.12% |
 
 Strict priority's 95% participant-bootstrap recall interval is 45.29–69.71%; confidence-only is 44.23–69.34%. The small difference does not establish superiority. Coverage suppression performs worse at this budget and is retained transparently. The chart shades the strict-priority interval; every method's intervals and 10/20/30% results are available in local JSON. One random ordering is used, so those intervals do not include randomness from rerandomizing review order. These results simulate finding reference disagreements; no human reviewer time savings, clinical corrections, or final locked-test performance has been measured.
+
+### Local interactive reviewer (Phase 5)
+
+Requirements: Python 3.12 with `uv`, Node.js 24 (Vite requires Node 20.19+/22.12+), Docker Desktop for PostgreSQL, and the five verified imports plus the saved Phase 4 review run. Raw data and model outputs are intentionally absent from Git; first follow the Phase 1–4 commands above on a new machine. Do not rename or alter their provenance. PostgreSQL is the verified application database; SQLite is supported for isolated tests and an optional single-user fallback.
+
+In PowerShell at the repository root, install dependencies and create a local database password. The following creation step refuses to overwrite an existing `.env`:
+
+```powershell
+$env:UV_PROJECT_ENVIRONMENT = '.venv-signals'
+uv sync --frozen --python 3.12
+if (Test-Path .env) { throw 'Preserve the existing .env; skip creation and load it below.' }
+$reviewPassword = [guid]::NewGuid().ToString('N')
+@("HYPNOREVIEW_DB_PASSWORD=$reviewPassword",
+  "HYPNOREVIEW_DATABASE_URL=postgresql+psycopg://hypnoreview:${reviewPassword}@127.0.0.1:55432/hypnoreview") |
+  Set-Content -Encoding utf8 .env
+```
+
+Load these local variables in each API/migration terminal (this parses values without executing file contents):
+
+```powershell
+Get-Content .env | ForEach-Object {
+  if ($_ -match '^HYPNOREVIEW_[A-Z_]+=') {
+    $reviewSetting = $_ -split '=', 2
+    [Environment]::SetEnvironmentVariable($reviewSetting[0], $reviewSetting[1], 'Process')
+  }
+}
+$env:UV_PROJECT_ENVIRONMENT = '.venv-signals'
+docker compose -p hypnoreview-phase5 -f infrastructure/compose/postgres.yml up -d --wait
+uv run --frozen alembic upgrade head
+uv run --frozen alembic check
+uv run --frozen hypnoreview-register --review-run artifacts/review/297b746c20b8e07465bdd275630fb42b04681674ccd4dd3ddf76e3d17e150a86
+uv run --frozen uvicorn apps.api.hypnoreview_api.main:app --host 127.0.0.1 --port 8000 --no-proxy-headers
+```
+
+Use the exact review-run directory printed by your Phase 4 command if its input/code hash differs from this saved development run. Registration validates source files against the frozen manifest, checks queue/configuration provenance and full epoch coverage, and inserts all five nights in one transaction. Repeating an identical registration adds no runs; changed immutable imports/predictions are refused. Registration is a trusted local CLI, not an upload endpoint.
+
+In another terminal:
+
+```powershell
+cd apps/web
+npm ci --ignore-scripts
+npm run dev
+```
+
+Open http://127.0.0.1:5173 and select a recording. The API's OpenAPI documentation is at http://127.0.0.1:8000/docs. Both processes must bind to loopback. If port 8000 is occupied, preserve the existing service and choose another port: set `HYPNOREVIEW_API_TARGET` in the frontend terminal to its URL. For a different frontend port, set the exact `HYPNOREVIEW_WEB_ORIGIN` in the API terminal. Do not expose this single-user service publicly.
+
+The interface provides paginated strict-priority, coverage-aware and chronological queues; an unreviewed filter; clickable hypnograms; 30s detail/150s context EEG/EOG/EMG; a synchronized EEG spectrogram; model probabilities and computed reasons; save/reload; append-only history and restoration through a new revision; and JSON/CSV downloads. Timeline metadata is fetched in pages of at most 500 epochs. Signal requests read at most 150 seconds, three channels and one million samples per channel. Min/max bins preserve amplitude extremes; responses include native sampling rates and actual times. Canvas display clips at ±150 µV with an explicit label. A 1 Hz EMG envelope is not raw high-rate EMG. The raw YASA branch remains unchanged. Spectrogram PSD is a display-only 2s Tukey-window estimate with 50% overlap, capped at 35 Hz.
+
+References are hidden by default, including JSON exports. `HYPNOREVIEW_SHOW_REFERENCES=1` is an explicit server-side research setting requiring a restart; it is not controlled by a client query parameter. Model predictions, original R&K source intervals and human decisions remain separate. A save uses `expected_revision`; a stale writer receives HTTP 409 and must reload. Reviewers are recorded as `local-owner`; accounts, OIDC and per-study authorization require a later multi-user design. Restoring a decision creates another event. JSON snapshots retain model/run/configuration/source provenance; CSV distinguishes predicted, reviewed and effective stages, including uncovered tails. No export changes reference labels.
+
+Implemented routes, all under `/api/v1`:
+
+| Method | Route | Behavior |
+|---|---|---|
+| GET | `/health` | Database connectivity, local mode and reference visibility. |
+| GET | `/recordings`, `/recordings/{id}` | Paginated metadata and available immutable runs; no filesystem paths/patient identifiers. |
+| GET | `/analysis-runs/{id}` | Registered run status, model and provenance. |
+| GET | `/recordings/{id}/epochs` | Pagination, chosen run, queue strategy, stage/risk/pending filters. |
+| GET | `/recordings/{id}/signal`, `/recordings/{id}/spectrogram` | Bounded native-rate windows and display aggregates. |
+| PATCH | `/epochs/{id}/review` | Conditional update plus append-only audit in one SQL transaction. |
+| GET | `/epochs/{id}/history` | Ordered human decisions with reviewer and run identity. |
+| POST | `/recordings/{id}/exports` | Consistent joined snapshot as JSON or CSV download. |
+
+MVP boundaries: local file storage, CLI import/inference/registration and precomputed successful runs. There is no HTTP EDF upload, asynchronous analysis submission, Redis/Celery, MinIO, experiment API, public demo deployment, authentication system or clinical validation. The specification explicitly permits CLI analysis in the first local prototype. PostgreSQL Compose here provisions only the database; full application container deployment belongs to Phase 7. No Phase 6 benchmark was started.
+
+Verification commands:
+
+```powershell
+uv run --frozen pytest -q
+uv run --frozen ruff check apps/api migrations packages tests/integration tests/e2e/serve_reviewer.py tests/unit/test_signal_foundation.py tests/unit/test_models.py tests/unit/test_review_engine.py
+uv run --frozen mypy apps/api packages --follow-imports=silent
+cd apps/web
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
+
+Browser tests use isolated synthetic data and dedicated ports 18000/15173, never the application database. The PostgreSQL API suite can also run with `HYPNOREVIEW_TEST_DATABASE_URL` pointing to a **dedicated disposable database ending in `_test`**; it drops/recreates that database's application tables. Never point it to the reviewer database. CI defines this disposable service separately. Local validation passed 69 Python tests plus 9 subtests, the 13-test PostgreSQL API suite, two Chromium workflows, migrations/ORM consistency, the frontend build and all five real recordings through the browser. Dependency deprecation warnings are documented locally; GitHub CI has not yet run for these unpushed changes.
+
+Stop API/frontend with Ctrl+C. Stop PostgreSQL with `docker compose -p hypnoreview-phase5 -f infrastructure/compose/postgres.yml stop`; this preserves its named volume. Keep `.env`, database volumes, screenshots, reports, raw data and model outputs local.
 
 ## Research Limitations and Safety
 

@@ -31,6 +31,9 @@ node_modules/
 dist/
 build/
 coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
 
 # Editors and OS
 .idea/

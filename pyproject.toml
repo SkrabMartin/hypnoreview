@@ -4,21 +4,22 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hypnoreview"
-version = "0.4.0"
+version = "0.5.0"
 description = "Research sleep staging and explainable human review prioritization"
 requires-python = ">=3.11"
-dependencies = ["mne==1.13.2", "numpy>=2.2.2,<2.4", "scipy>=1.15,<1.17", "yasa==0.8.0", "scikit-learn==1.7.2"]
+dependencies = ["mne==1.13.2", "numpy>=2.2.2,<2.4", "scipy>=1.15,<1.17", "yasa==0.8.0", "scikit-learn==1.7.2", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "sqlalchemy>=2.0,<2.1", "alembic>=1.14,<2", "psycopg[binary]>=3.2,<4"]
 
 [project.scripts]
 hypnoreview-import = "packages.signals.cli:main"
 hypnoreview-models = "packages.models.cli:main"
 hypnoreview-review = "packages.ranking.cli:main"
+hypnoreview-register = "apps.api.hypnoreview_api.ingest:main"
 
 [dependency-groups]
-dev = ["pytest>=8,<10", "ruff>=0.14,<1", "mypy>=1.18,<2", "xlrd==2.0.2"]
+dev = ["pytest>=8,<10", "ruff>=0.14,<1", "mypy>=1.18,<2", "xlrd==2.0.2", "httpx>=0.28,<1"]
 
 [tool.setuptools.packages.find]
-include = ["packages*", "tools*"]
+include = ["packages*", "tools*", "apps", "apps.api*"]
 
 [tool.ruff]
 target-version = "py311"
